@@ -902,6 +902,7 @@ float ShadowsFogScatteringSquidScene::GetPostprocessPassGPUTimeInMs() const
 
 void ShadowsFogScatteringSquidScene::ShadowPass(ID3D12GraphicsCommandList* pCommandList, int threadIndex)
 {
+    // Enabled/Disabled by SHADOWS in ShadowsFogScatteringSquidScene::WorkerThread
     // Set necessary state.
     pCommandList->SetGraphicsRootSignature(m_rootSignatures[RootSignature::ShadowPass].Get());
 
@@ -957,11 +958,13 @@ void ShadowsFogScatteringSquidScene::ScenePass(ID3D12GraphicsCommandList* pComma
 // Apply a postprocess pass with a light scattering effect. 
 void ShadowsFogScatteringSquidScene::PostprocessPass(ID3D12GraphicsCommandList* pCommandList)
 {
+#if SCATTERING
     // Set necessary state.
     pCommandList->SetGraphicsRootSignature(m_rootSignatures[RootSignature::PostprocessPass].Get());
     pCommandList->SetPipelineState(m_pipelineStates[RenderPass::Postprocess].Get());
 
     DrawInScattering(pCommandList, GetCurrentBackBufferRtvCpuHandle());
+#endif
 }
 
 void ShadowsFogScatteringSquidScene::UpdateConstantBuffers()
@@ -1029,6 +1032,7 @@ void ShadowsFogScatteringSquidScene::CommitConstantBuffers()
 
 void ShadowsFogScatteringSquidScene::DrawInScattering(ID3D12GraphicsCommandList* pCommandList, const D3D12_CPU_DESCRIPTOR_HANDLE& renderTargetHandle)
 {
+    // Enabled/Disabled by SCATTERING in ShadowsFogScatteringSquidScene::PostprocessPass
     PIXBeginEvent(pCommandList, 0, L"In-Scattering");
 
     // Set necessary state.
@@ -1044,7 +1048,6 @@ void ShadowsFogScatteringSquidScene::DrawInScattering(ID3D12GraphicsCommandList*
 
     // Draw.
     pCommandList->DrawInstanced(4, 1, 0, 0);
-
     PIXEndEvent(pCommandList);
 }
 
@@ -1148,9 +1151,10 @@ void ShadowsFogScatteringSquidScene::WorkerThread(int threadIndex)
         ThrowIfFailed(pShadowCommandList->Reset(m_pCurrentFrameResource->m_contextCommandAllocators[threadIndex].Get(), m_pipelineStates[SceneEnums::RenderPass::Shadow].Get()));
             PIXBeginEvent(pShadowCommandList, 0, L"Worker drawing shadow pass...");
 
+#if SHADOWS
             // Performance tip: Only set descriptor heaps if you need access to them.
             ShadowPass(pShadowCommandList, threadIndex);
-
+#endif
             // Close the command list.
         PIXEndEvent(pShadowCommandList);
         ThrowIfFailed(pShadowCommandList->Close());

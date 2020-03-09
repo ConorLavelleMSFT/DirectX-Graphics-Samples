@@ -569,11 +569,13 @@ void VariableRateShadingScene::MidFrame()
     // Clear the refraction map.
     pCommandListMid->ClearRenderTargetView(m_refractionMapCpuHandle, s_clearColor, 0, nullptr);
 
+#if REFRACTION
     PIXBeginEvent(pCommandListMid, 0, L"Refraction pass");
     m_pCurrentFrameResource->m_gpuTimer.Start(pCommandListMid, VRSSceneEnums::Timestamp::RefractionPass);
     RefractionPass(pCommandListMid);
     m_pCurrentFrameResource->m_gpuTimer.Stop(pCommandListMid, VRSSceneEnums::Timestamp::RefractionPass);
     PIXEndEvent(pCommandListMid);
+#endif
 
     // Transition refraction map to a readable state for scene rendering.
     pCommandListMid->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_refractionTexture.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
@@ -587,6 +589,8 @@ void VariableRateShadingScene::RefractionPass(ID3D12GraphicsCommandList* pComman
     //
     // The refraction pass is similar to the scene pass, but has a clip plane enabled and render to an intermediate texture.
     //
+
+    // Enabled/Disabled by REFRACTION in VariableRateShadingScene::MidFrame
 
     // Set necessary state.
     pCommandList->SetGraphicsRootSignature(m_rootSignatures[RootSignature::ScenePass].Get());
@@ -676,6 +680,7 @@ void VariableRateShadingScene::ScenePass(ID3D12GraphicsCommandList* pCommandList
     }
 
     // Use the last thread to render the glass pane.
+#if GLASSPANE
     if (threadIndex == (NumContexts - 1))
     {
         // Set necessary state.
@@ -697,6 +702,7 @@ void VariableRateShadingScene::ScenePass(ID3D12GraphicsCommandList* pCommandList
             pCommandList->DrawInstanced(4, 1, 0, 0);
         }
     }
+#endif
 }
 
 void VariableRateShadingScene::PostprocessPass(ID3D12GraphicsCommandList* pCommandList)

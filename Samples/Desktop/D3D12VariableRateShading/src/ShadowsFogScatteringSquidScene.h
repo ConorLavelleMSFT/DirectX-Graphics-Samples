@@ -29,6 +29,11 @@ class DXSample;
 
 #define SINGLETHREADED FALSE
 
+#define GLASSPANE FALSE
+#define REFRACTION (GLASSPANE && FALSE)
+#define SHADOWS FALSE
+#define SCATERING FALSE
+
 static const UINT NumNullSrvs = 2; // Null descriptors at the start of the heap.
 static const UINT NumContexts = 3;
 
