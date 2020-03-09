@@ -124,6 +124,7 @@ protected:
     ComPtr<ID3D12PipelineState> m_refractionPassPipelineState;
     ComPtr<ID3D12PipelineState> m_glassPipelineStates[SceneEnums::RenderPass::Count];
     ComPtr<ID3D12Resource> m_refractionTexture;
+    ComPtr<ID3D12Resource> m_shadingRateImage;
     ComPtr<ID3D12Resource> m_glassTextures[_countof(SampleAssets::Glass::Textures)];
     ComPtr<ID3D12Resource> m_glassTextureUploads[_countof(SampleAssets::Glass::Textures)];
     ComPtr<ID3D12Resource> m_glassVertexBuffer;

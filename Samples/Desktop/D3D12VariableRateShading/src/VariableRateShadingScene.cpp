@@ -23,7 +23,7 @@ VariableRateShadingScene::VariableRateShadingScene(UINT frameCount, DXSample* pS
     , m_refractionScale(0.01f)
     , m_shadingRateTier(D3D12_VARIABLE_SHADING_RATE_TIER_NOT_SUPPORTED)
     , m_refractionShadingRate(D3D12_SHADING_RATE_1X1)
-    , m_sceneShadingRate(D3D12_SHADING_RATE_1X1)
+    , m_sceneShadingRate(D3D12_SHADING_RATE_2X2)
     , m_postprocessShadingRate(D3D12_SHADING_RATE_1X1)
 {
     m_fogDensity = 0.015f;
@@ -128,6 +128,44 @@ void VariableRateShadingScene::LoadSizeDependentResources(ID3D12Device* pDevice,
         refractionSrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
         pDevice->CreateShaderResourceView(m_refractionTexture.Get(), &refractionSrvDesc, cbvSrvCpuHandle);
     }
+
+    // Create a Shading Rate Image that alternates 4x4 and 1x1 
+    // Should query this
+    const unsigned int WarpTileSize = 32;
+    int numTilesW = (int)std::ceil(width / WarpTileSize);
+    int numTilesH = (int)std::ceil(height / WarpTileSize);
+    int numTiles = numTilesW * numTilesH;
+    std::vector<uint8_t> shadingRateData(numTiles);
+    for (int i = 0; i < numTiles; ++i)
+    {
+        shadingRateData[i] = (i % 2) ?
+            D3D12_SHADING_RATE_4X4 :
+            D3D12_SHADING_RATE_4X4;
+    }
+
+    auto desc = CD3DX12_RESOURCE_DESC::Tex2D(
+        DXGI_FORMAT_R8_UINT,
+        numTilesW,
+        numTilesH,
+        1, // arraySize
+        1, // mipLevels
+        1, // sampleCount
+        0, // sampleQuality
+        D3D12_RESOURCE_FLAG_NONE);
+
+    auto heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_CUSTOM);
+    heapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE;
+    heapProp.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
+
+    pDevice->CreateCommittedResource(
+        &heapProp,
+        D3D12_HEAP_FLAG_NONE,
+        &desc,
+        D3D12_RESOURCE_STATE_SHADING_RATE_SOURCE,
+        nullptr,
+        IID_PPV_ARGS(&m_shadingRateImage));
+
+    m_shadingRateImage->WriteToSubresource(0, nullptr, shadingRateData.data(), numTilesW * sizeof(UINT8), 0);
 }
 
 void VariableRateShadingScene::ReleaseSizeDependentResources()
@@ -136,6 +174,7 @@ void VariableRateShadingScene::ReleaseSizeDependentResources()
     ShadowsFogScatteringSquidScene::ReleaseSizeDependentResources();
 
     m_refractionTexture.Reset();
+    m_shadingRateImage.Reset();
 }
 
 float VariableRateShadingScene::GetRefractionPassGPUTimeInMs() const
@@ -664,6 +703,18 @@ void VariableRateShadingScene::ScenePass(ID3D12GraphicsCommandList* pCommandList
     if (m_shadingRateTier >= D3D12_VARIABLE_SHADING_RATE_TIER_1)
     {
         reinterpret_cast<ID3D12GraphicsCommandList5*>(pCommandList)->RSSetShadingRate(m_sceneShadingRate, nullptr);
+    }
+    if (m_shadingRateTier >= D3D12_VARIABLE_SHADING_RATE_TIER_2)
+    {
+        ID3D12GraphicsCommandList5* pCl5 = reinterpret_cast<ID3D12GraphicsCommandList5*>(pCommandList);
+        D3D12_SHADING_RATE_COMBINER combiners[2] =
+        {
+                D3D12_SHADING_RATE_COMBINER_PASSTHROUGH,
+                D3D12_SHADING_RATE_COMBINER_OVERRIDE
+        };
+
+        pCl5->RSSetShadingRate(D3D12_SHADING_RATE_1X1, combiners);
+        pCl5->RSSetShadingRateImage(m_shadingRateImage.Get());
     }
 
     // Draw.
