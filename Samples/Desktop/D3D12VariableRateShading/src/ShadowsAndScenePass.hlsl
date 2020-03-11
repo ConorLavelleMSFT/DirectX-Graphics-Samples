@@ -69,10 +69,10 @@ float4 PSMain(PSInput input) : SV_TARGET
     for (int i = 0; i < NUM_LIGHTS; i++)
     {
         float4 lightPass = CalcLightingColor(lights[i].position, lights[i].direction, lights[i].color, lights[i].falloff, input.worldpos.xyz, pixelNormal);
-        if (sampleShadowMap && i == 0)
-        {
-            lightPass *= CalcUnshadowedAmountPCF2x2(i, input.worldpos);
-        }
+        //if (sampleShadowMap && i == 0)
+        //{
+        //    lightPass *= CalcUnshadowedAmountPCF2x2(i, input.worldpos);
+        //}
         totalLight += lightPass;
     }
 

@@ -309,11 +309,26 @@ void GraphicsContext::SetViewportAndScissor( const D3D12_VIEWPORT& vp, const D3D
     ASSERT(rect.left < rect.right && rect.top < rect.bottom);
     m_CommandList->RSSetViewports( 1, &vp );
     m_CommandList->RSSetScissorRects( 1, &rect );
+
+    auto pCl5 = reinterpret_cast<ID3D12GraphicsCommandList5*>(m_CommandList);
+    //D3D12_SHADING_RATE_COMBINER combiners[2] = {
+    //    D3D12_SHADING_RATE_COMBINER_PASSTHROUGH,
+    //    D3D12_SHADING_RATE_COMBINER_PASSTHROUGH
+    //};
+    pCl5->RSSetShadingRate(D3D12_SHADING_RATE_4X4, nullptr);
+
 }
 
 void GraphicsContext::SetViewport( const D3D12_VIEWPORT& vp )
 {
     m_CommandList->RSSetViewports( 1, &vp );
+
+    auto pCl5 = reinterpret_cast<ID3D12GraphicsCommandList5*>(m_CommandList);
+    //D3D12_SHADING_RATE_COMBINER combiners[2] = {
+    //    D3D12_SHADING_RATE_COMBINER_PASSTHROUGH,
+    //    D3D12_SHADING_RATE_COMBINER_PASSTHROUGH
+    //};
+    pCl5->RSSetShadingRate(D3D12_SHADING_RATE_4X4, nullptr);
 }
 
 void GraphicsContext::SetViewport( FLOAT x, FLOAT y, FLOAT w, FLOAT h, FLOAT minDepth, FLOAT maxDepth )

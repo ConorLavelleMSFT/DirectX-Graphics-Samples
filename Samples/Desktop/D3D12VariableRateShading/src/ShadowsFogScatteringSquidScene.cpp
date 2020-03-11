@@ -50,7 +50,7 @@ ShadowsFogScatteringSquidScene::~ShadowsFogScatteringSquidScene()
 void ShadowsFogScatteringSquidScene::InitializeCameraAndLights()
 {
     XMVECTOR eye = XMVectorSet(0.0f, 17.1954231f, -28.555980f, 1.0f);
-    XMVECTOR at = XMVectorSet(0.0f, 8.0f, 0.0f, 0.0f);
+    XMVECTOR at = XMVectorSet(0.0f, 4.0f, 0.0f, 0.0f);
     XMVECTOR up = XMVectorSet(0.0f, 0.951865792f, 0.306514263f, 1.0f);
     m_camera.Set(eye, at, up);
 
@@ -292,7 +292,10 @@ void ShadowsFogScatteringSquidScene::CreatePipelineStates(ID3D12Device* pDevice)
         psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
         psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
         psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+        //psoDesc.RasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON;
         psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+        psoDesc.BlendState.IndependentBlendEnable = false;
+        psoDesc.BlendState.AlphaToCoverageEnable = false;
         psoDesc.DepthStencilState = depthStencilDesc;
         psoDesc.SampleMask = UINT_MAX;
         psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
@@ -337,7 +340,7 @@ void ShadowsFogScatteringSquidScene::CreatePipelineStates(ID3D12Device* pDevice)
         psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
         psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
         psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-        psoDesc.BlendState.RenderTarget[0].BlendEnable = TRUE;
+        psoDesc.BlendState.RenderTarget[0].BlendEnable = FALSE;
         psoDesc.BlendState.RenderTarget[0].SrcBlend = D3D12_BLEND_ONE;
         psoDesc.BlendState.RenderTarget[0].DestBlend = D3D12_BLEND_SRC_ALPHA;
         psoDesc.BlendState.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
@@ -824,14 +827,30 @@ void ShadowsFogScatteringSquidScene::Update(double elapsedTime)
     // Update camera and lights.
     const float angleChange = 2.0f * static_cast<float>(elapsedTime);
 
+
     if (m_keyboardInput.leftArrowPressed)
+    {
         m_camera.RotateAroundYAxis(-angleChange);
+        //m_camera.mEye.m128_f32[1] -= 1.0f;
+    }
+
     if (m_keyboardInput.rightArrowPressed)
+    {
         m_camera.RotateAroundYAxis(angleChange);
+        //m_camera.mEye.m128_f32[1] += 1.0f;
+    }
+
     if (m_keyboardInput.upArrowPressed)
+    {
         m_camera.RotatePitch(-angleChange);
+        //m_camera.mEye.m128_f32[2] += 1.0f;
+    }
+
     if (m_keyboardInput.downArrowPressed)
+    {
         m_camera.RotatePitch(angleChange);
+        //m_camera.mEye.m128_f32[2] -= 1.0f;
+    }
 
     if (m_keyboardInput.animate)
     {
@@ -943,7 +962,7 @@ void ShadowsFogScatteringSquidScene::ScenePass(ID3D12GraphicsCommandList* pComma
 
     // Draw.
     const D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvHeapStart = m_cbvSrvHeap->GetGPUDescriptorHandleForHeapStart();
-    for (int j = threadIndex; j < _countof(SampleAssets::Draws); j += NumContexts)
+    for (int j = threadIndex; j < threadIndex + 1 /*_countof(SampleAssets::Draws)*/; j += NumContexts)
     {
         const SampleAssets::DrawParameters& drawArgs = SampleAssets::Draws[j];
 

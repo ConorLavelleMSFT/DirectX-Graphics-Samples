@@ -23,7 +23,7 @@ VariableRateShadingScene::VariableRateShadingScene(UINT frameCount, DXSample* pS
     , m_refractionScale(0.01f)
     , m_shadingRateTier(D3D12_VARIABLE_SHADING_RATE_TIER_NOT_SUPPORTED)
     , m_refractionShadingRate(D3D12_SHADING_RATE_1X1)
-    , m_sceneShadingRate(D3D12_SHADING_RATE_2X2)
+    , m_sceneShadingRate(D3D12_SHADING_RATE_4X4)
     , m_postprocessShadingRate(D3D12_SHADING_RATE_1X1)
 {
     m_fogDensity = 0.015f;
@@ -321,7 +321,9 @@ void VariableRateShadingScene::CreatePipelineStates(ID3D12Device* pDevice)
     inputLayoutDesc.NumElements = _countof(SampleAssets::StandardVertexDescription);
 
     CD3DX12_RASTERIZER_DESC rasterizerDepthBias(D3D12_DEFAULT);
+#if REFRACTION
     rasterizerDepthBias.DepthBias = 3; // Avoid depth artifacts when filling the scene depth buffer during the refraction pass.
+#endif
 
     CD3DX12_RASTERIZER_DESC rasterizerCullModeNone(D3D12_DEFAULT);
     rasterizerCullModeNone.CullMode = D3D12_CULL_MODE_NONE;
@@ -695,6 +697,7 @@ void VariableRateShadingScene::ScenePass(ID3D12GraphicsCommandList* pCommandList
     pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     pCommandList->IASetVertexBuffers(0, 1, &m_vertexBufferViews[VertexBuffer::SceneGeometry]);
     pCommandList->IASetIndexBuffer(&m_indexBufferView);
+
     pCommandList->RSSetViewports(1, &m_viewport);
     pCommandList->RSSetScissorRects(1, &m_scissorRect);
     pCommandList->OMSetRenderTargets(1, &GetCurrentBackBufferRtvCpuHandle(), FALSE, &m_depthDsvs[DepthGenPass::Scene]);
@@ -719,10 +722,17 @@ void VariableRateShadingScene::ScenePass(ID3D12GraphicsCommandList* pCommandList
 
     // Draw.
     const D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvHeapStart = m_cbvSrvHeap->GetGPUDescriptorHandleForHeapStart();
-    for (int j = threadIndex; j < _countof(SampleAssets::Draws); j += NumContexts)
+#if SIMPLETEST
+    // one single barrel
+    int start = 1018;
+    int end = 1019;
+#else 
+    int start = 0;
+    int end = _countof(SampleAssets::Draws);
+#endif
+    for (int j = start + threadIndex; j < end; j += NumContexts)
     {
         const SampleAssets::DrawParameters& drawArgs = SampleAssets::Draws[j];
-
         // Set the diffuse and normal textures for the current object.
         const CD3DX12_GPU_DESCRIPTOR_HANDLE cbvSrvHandle(cbvSrvHeapStart, NumNullSrvs + _countof(m_depthSrvCpuHandles) + drawArgs.DiffuseTextureIndex, m_cbvSrvDescriptorSize);
         pCommandList->SetGraphicsRootDescriptorTable(0, cbvSrvHandle);

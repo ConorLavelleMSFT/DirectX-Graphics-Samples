@@ -33,9 +33,11 @@ class DXSample;
 #define REFRACTION (GLASSPANE && FALSE)
 #define SHADOWS FALSE
 #define SCATERING FALSE
+#define SIMPLETEST TRUE
+//#define BARRELS 1011, 1012, 1013
 
 static const UINT NumNullSrvs = 2; // Null descriptors at the start of the heap.
-static const UINT NumContexts = 3;
+static const UINT NumContexts = 1;
 
 // Currently the rendering code can only handle a single point light.
 static const UINT NumLights = 1; // Keep this in sync with "ShadowsAndScenePass.hlsl".
