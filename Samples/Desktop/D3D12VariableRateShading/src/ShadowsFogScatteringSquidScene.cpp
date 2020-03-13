@@ -280,7 +280,7 @@ void ShadowsFogScatteringSquidScene::CreatePipelineStates(ID3D12Device* pDevice)
         inputLayoutDesc.NumElements = _countof(SampleAssets::StandardVertexDescription);
 
         CD3DX12_DEPTH_STENCIL_DESC depthStencilDesc(D3D12_DEFAULT);
-        depthStencilDesc.DepthEnable = true;
+        depthStencilDesc.DepthEnable = false;
         depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
         depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
         depthStencilDesc.StencilEnable = FALSE;
@@ -962,7 +962,7 @@ void ShadowsFogScatteringSquidScene::ScenePass(ID3D12GraphicsCommandList* pComma
 
     // Draw.
     const D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvHeapStart = m_cbvSrvHeap->GetGPUDescriptorHandleForHeapStart();
-    for (int j = threadIndex; j < threadIndex + 1 /*_countof(SampleAssets::Draws)*/; j += NumContexts)
+    for (int j = threadIndex; j < threadIndex + _countof(SampleAssets::Draws); j += NumContexts)
     {
         const SampleAssets::DrawParameters& drawArgs = SampleAssets::Draws[j];
 
@@ -1206,9 +1206,9 @@ void ShadowsFogScatteringSquidScene::WorkerThread(int threadIndex)
             ScenePass(pSceneCommandList, threadIndex);
 
             if (threadIndex == NumContexts - 1)
-        {
+            {
                 m_pCurrentFrameResource->m_gpuTimer.Stop(pSceneCommandList, Timestamp::ScenePass);
-        }
+            }
 
             // Close the command list.
         PIXEndEvent(pSceneCommandList);

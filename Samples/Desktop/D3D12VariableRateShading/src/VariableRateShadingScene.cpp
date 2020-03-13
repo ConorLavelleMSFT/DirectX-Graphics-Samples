@@ -132,15 +132,70 @@ void VariableRateShadingScene::LoadSizeDependentResources(ID3D12Device* pDevice,
     // Create a Shading Rate Image that alternates 4x4 and 1x1 
     // Should query this
     const unsigned int WarpTileSize = 32;
-    int numTilesW = (int)std::ceil(width / WarpTileSize);
-    int numTilesH = (int)std::ceil(height / WarpTileSize);
+    int numTilesW = (int)std::ceil((float)width / WarpTileSize);
+    int numTilesH = (int)std::ceil((float)height / WarpTileSize);
     int numTiles = numTilesW * numTilesH;
     std::vector<uint8_t> shadingRateData(numTiles);
     for (int i = 0; i < numTiles; ++i)
     {
+#if IMAGECASE_EASY
+        // Like there was text at top of screen you wanted full resolution for 
+        int x = i % numTilesW;
+        int y = i / numTilesW;
+
+        int leftEdge = numTilesW / 3;
+        int rightEdge = leftEdge * 2;
+        int bottomEdge = 2;
+
+        if (x > leftEdge && x < rightEdge && y < bottomEdge)
+        {
+            shadingRateData[i] = D3D12_SHADING_RATE_1X1;
+        }
+        else
+        {
+            shadingRateData[i] = D3D12_SHADING_RATE_4X4;
+        }
+#elif IMAGECASE_MEDIUM
+        int x = i % numTilesW;
+        int y = i / numTilesW;
+
+        int outerLeftEdge = numTilesW / 6;
+        int innerLeftEdge = outerLeftEdge * 2;
+        int outerRightEdge = outerLeftEdge * 5;
+        int innerRightEdge = outerLeftEdge * 4; 
+        int outerTopEdge = numTilesH / 6;
+        int innerTopEdge = outerTopEdge * 2;
+        int outerBottomEdge = outerTopEdge * 5;
+        int innerBottomEdge = outerTopEdge * 4;
+
+        // in the outer band 
+        if (x < outerLeftEdge || x > outerRightEdge ||
+            y < outerTopEdge  || y > outerBottomEdge)
+        {
+            shadingRateData[i] = D3D12_SHADING_RATE_4X4;
+        }
+        // in the inner band
+        else if(x < innerLeftEdge || x > innerRightEdge || 
+                y < innerTopEdge  || y > innerBottomEdge)
+        {
+            shadingRateData[i] = D3D12_SHADING_RATE_2X4;
+        }
+        // in the center
+        else
+        {
+            shadingRateData[i] = D3D12_SHADING_RATE_4X2;
+        }
+#elif IMAGECASE_HARD
+        // groups of 2 matching tiles to allow some merging 
+        shadingRateData[i] = ((i % 4) > 1) ?
+            D3D12_SHADING_RATE_4X4 :
+            D3D12_SHADING_RATE_4X2;
+#else // IMAGECASE_WORST
+        // every other tile is different, no merging
         shadingRateData[i] = (i % 2) ?
             D3D12_SHADING_RATE_4X4 :
-            D3D12_SHADING_RATE_4X4;
+            D3D12_SHADING_RATE_4X2;
+#endif
     }
 
     auto desc = CD3DX12_RESOURCE_DESC::Tex2D(

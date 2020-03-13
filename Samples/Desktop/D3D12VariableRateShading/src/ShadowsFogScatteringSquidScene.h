@@ -33,7 +33,18 @@ class DXSample;
 #define REFRACTION (GLASSPANE && FALSE)
 #define SHADOWS FALSE
 #define SCATERING FALSE
-#define SIMPLETEST TRUE
+#define SIMPLETEST FALSE
+// if multiple defined true checks in easy>worst order
+// Most of the scene 1 rate, with a slgiht difference at top of screen 
+#define IMAGECASE_EASY FALSE
+// 3 different shading rates, decreasing rate as getting closer to center of screen
+#define IMAGECASE_MEDIUM TRUE
+// Switch shading rate every other tile so there's still some merging 
+#define IMAGECASE_HARD FALSE
+// no tiles will be merged 
+#define IMAGECASE_WORST FALSE
+
+
 //#define BARRELS 1011, 1012, 1013
 
 static const UINT NumNullSrvs = 2; // Null descriptors at the start of the heap.
